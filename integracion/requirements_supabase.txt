@@ -1,0 +1,4 @@
+supabase
+websockets
+httpx
+python-dotenv

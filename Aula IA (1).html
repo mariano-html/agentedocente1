@@ -1,0 +1,785 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Aula IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600&display=swap">
+<style>
+/* Maqueta de interfaz: historial a la izquierda, chat centrado a la derecha. Negro puro con degradado difuso de rosa, coral, amarillo, menta, turquesa y violeta. Sin IA conectada. */
+:root {
+  --bg: #000000;
+  --side: #08080a;
+  --surface: #101013;
+  --surface-2: #17171b;
+  --line: #26262d;
+  --text: #e8eaed;
+  --dim: #9aa0aa;
+  --g1: #38c8d4;
+  --g2: #a78bfa;
+  --g3: #ee5fa7;
+  --coral: #ff8f6b;
+  --sun: #ffd166;
+  --mint: #7fdcb4;
+  --danger: #f28b82;
+  --grad: linear-gradient(115deg, var(--g3), var(--coral) 24%, var(--sun) 44%, var(--mint) 64%, var(--g1) 82%, var(--g2));
+  --font-display: "Bricolage Grotesque", "Trebuchet MS", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--bg); color: var(--text); font-family: var(--font-body); font-size: 16px; line-height: 1.55; margin: 0; overflow: hidden; }
+* { box-sizing: border-box; }
+button { font-family: inherit; }
+
+.shell { height: 100%; display: grid; grid-template-columns: 17.5rem minmax(0, 1fr); }
+
+/* ---------- Historial ---------- */
+.side { background: var(--side); border-right: 1px solid var(--line); display: flex; flex-direction: column; min-height: 0; padding: 16px 12px; gap: 16px; }
+.brand { display: flex; align-items: center; gap: 8px; font-family: var(--font-display); font-weight: 700; font-size: 1.3rem; letter-spacing: -0.01em; padding-inline: 8px; }
+.brand .logo { width: 30px; height: 30px; flex: none; }
+.brand span, .gtext { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.new-btn { display: flex; align-items: center; gap: 10px; width: 100%; color: var(--text); font-size: 0.95rem; font-weight: 500; cursor: pointer; border-radius: 999px; padding: 10px 16px; border: 1.5px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; }
+.new-btn:hover { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; }
+.side h2 { font-size: 0.72rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--dim); font-weight: 600; margin: 0; padding-inline: 8px; }
+.history { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; gap: 2px; margin-top: -8px; }
+.h-item { display: flex; align-items: center; gap: 4px; border-radius: 12px; border: 1px solid transparent; }
+.h-item:hover { background: var(--surface); }
+.h-item.active { background: var(--surface-2); border-color: var(--line); }
+.h-open { flex: 1; min-width: 0; text-align: left; background: none; border: 0; color: var(--text); cursor: pointer; padding: 9px 10px; border-radius: 12px; }
+.h-title { display: block; font-size: 0.9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-sub { display: block; font-size: 0.74rem; color: var(--dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.h-del { flex: none; width: 28px; height: 28px; margin-right: 6px; border-radius: 8px; border: 0; background: none; color: var(--dim); cursor: pointer; opacity: 0; font-size: 1.1rem; line-height: 1; }
+.h-item:hover .h-del, .h-item:focus-within .h-del { opacity: 1; }
+.h-del:hover { color: var(--danger); background: var(--surface-2); }
+.h-empty { color: var(--dim); font-size: 0.85rem; padding: 4px 8px; }
+.side-note { font-size: 0.72rem; color: var(--dim); padding-inline: 8px; }
+
+/* ---------- Principal ---------- */
+.main { display: flex; flex-direction: column; min-width: 0; min-height: 0; position: relative; isolation: isolate; }
+.main > * { position: relative; z-index: 1; }
+.main::before { content: ""; position: absolute; z-index: 0; inset: 0 0 auto 0; height: 60%; pointer-events: none; opacity: 0.22; filter: blur(60px);
+  background: radial-gradient(40% 50% at 15% 10%, var(--g1), transparent 70%), radial-gradient(40% 50% at 55% 0%, var(--g3), transparent 70%), radial-gradient(35% 45% at 90% 15%, var(--sun), transparent 70%), radial-gradient(40% 45% at 35% 45%, var(--mint), transparent 70%); }
+.topbar { display: flex; align-items: center; gap: 12px; padding: 12px 16px; min-height: 56px; }
+.menu { display: none; width: 40px; height: 40px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); cursor: pointer; place-items: center; }
+.topbar .spacer { flex: 1; }
+.who { font-size: 0.85rem; color: var(--dim); border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; min-width: 0; overflow-wrap: anywhere; }
+.who[hidden] { display: none; }
+.scroll { flex: 1; min-height: 0; overflow-y: auto; scroll-behavior: smooth; }
+.col { width: 100%; max-width: 46rem; margin-inline: auto; padding-inline: 16px; }
+#log { display: flex; flex-direction: column; gap: 24px; padding-block: 12px 28px; }
+.hero { padding-block: 5vh 8px; }
+.hero h1 { font-family: var(--font-display); font-weight: 700; font-size: clamp(2.1rem, 6vw, 3.2rem); line-height: 1.1; letter-spacing: -0.02em; margin: 0 0 6px; text-wrap: balance; }
+.hero p { margin: 0; color: var(--dim); font-size: 1.15rem; }
+
+.msg { display: flex; gap: 12px; min-width: 0; max-width: 100%; }
+.msg.user { justify-content: flex-end; }
+.avatar { flex: none; width: 34px; height: 34px; margin-top: -2px; }
+.body { min-width: 0; flex: 1; }
+.bubble { min-width: 0; max-width: 100%; overflow-wrap: anywhere; }
+.msg.user .bubble { background: var(--surface-2); border-radius: 20px 20px 6px 20px; padding: 11px 16px; max-width: 85%; white-space: pre-wrap; }
+.msg.user .stack { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; flex: 1; width: 100%; max-width: 100%; min-width: 0; }
+.msg.user .bubble { width: fit-content; max-width: min(88%, 40rem); }
+.bubble p { margin: 0 0 0.75em; }
+.bubble p:last-child { margin-bottom: 0; }
+.bubble strong { color: #fff; font-weight: 600; }
+.bubble h2, .bubble h3 { font-family: var(--font-display); line-height: 1.25; margin: 1.3em 0 0.5em; }
+.bubble ul, .bubble ol { margin: 0 0 0.8em; padding-left: 1.3em; }
+.bubble li::marker { color: var(--g2); }
+.caret { display: inline-block; width: 2px; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; background: var(--g3); animation: blink 0.9s steps(2, start) infinite; -webkit-text-fill-color: initial; }
+@keyframes blink { to { visibility: hidden; } }
+.chips-files { display: flex; flex-wrap: wrap; gap: 6px; justify-content: flex-end; }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 0.8rem; border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 3px 9px; max-width: 100%; }
+.chip .name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 16rem; }
+.chip .note { color: var(--dim); white-space: nowrap; }
+.chip button { background: none; border: 0; color: var(--dim); cursor: pointer; padding: 0 2px; font-size: 1rem; line-height: 1; }
+.chip button:hover { color: var(--text); }
+.actions { display: flex; gap: 8px; margin-top: 10px; }
+.ghost { background: none; border: 1px solid var(--line); color: var(--dim); font-size: 0.85rem; border-radius: 999px; padding: 5px 14px; cursor: pointer; }
+.ghost:hover { color: var(--text); border-color: var(--g2); }
+.dots { display: inline-flex; gap: 5px; padding-block: 8px; }
+.dots i { width: 8px; height: 8px; border-radius: 50%; background: var(--grad); animation: pulse 1.1s infinite ease-in-out; }
+.dots i:nth-child(2) { animation-delay: 0.15s; }
+.dots i:nth-child(3) { animation-delay: 0.3s; }
+@keyframes pulse { 0%, 80%, 100% { opacity: 0.25; transform: translateY(0); } 40% { opacity: 1; transform: translateY(-3px); } }
+.suggest { display: flex; flex-wrap: wrap; gap: 8px; padding-left: 46px; }
+.suggest button { font-size: 0.88rem; color: var(--text); cursor: pointer; border-radius: 14px; padding: 8px 14px; text-align: left; border: 1.5px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; }
+.suggest button:hover { background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; }
+
+/* ---------- Compositor ---------- */
+.composer-wrap { padding-block: 8px 14px; }
+.composer-glow { position: relative; isolation: isolate; }
+.composer-glow::before { content: ""; position: absolute; inset: -2px; border-radius: 30px; background: var(--grad); filter: blur(16px); opacity: 0.4; z-index: -1; pointer-events: none; }
+.attached { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 8px; padding-inline: 8px; }
+.attached:empty { display: none; }
+.composer { display: flex; align-items: flex-end; gap: 6px; border-radius: 28px; padding: 8px; border: 1.5px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; }
+.composer.invalid { animation: shake 0.35s; }
+@keyframes shake { 20%, 60% { transform: translateX(-5px); } 40%, 80% { transform: translateX(5px); } }
+.composer textarea { flex: 1; min-width: 0; resize: none; background: transparent; border: 0; outline: 0; color: var(--text); font: inherit; line-height: 1.45; min-height: 4rem; max-height: min(22rem, 45vh); padding: 10px 8px; }
+.composer textarea::placeholder { color: var(--dim); }
+#courseSelect { flex: 1; min-width: 0; background: transparent; border: 0; outline: 0; color: var(--text); font: inherit; line-height: 1.45; min-height: 3.2rem; padding: 10px 8px; cursor: pointer; }
+#courseSelect option { background: var(--surface); color: var(--text); }
+#courseSelect:focus-visible { outline: 0; }
+.icon-btn, .send { flex: none; width: 42px; height: 42px; border-radius: 50%; border: 0; cursor: pointer; display: grid; place-items: center; position: relative; z-index: 1; }
+.icon-btn { background: transparent; color: var(--dim); }
+.icon-btn:hover { color: var(--text); background: var(--surface-2); }
+.send { background: var(--grad); color: #14121c; }
+button:focus-visible, textarea:focus-visible { outline: 2px solid var(--g1); outline-offset: 2px; }
+.composer textarea:focus-visible { outline: 0; }
+.hint { font-size: 0.75rem; color: var(--dim); margin: 8px 12px 0; text-align: center; }
+.hint.err { color: var(--danger); }
+.who-row { display: flex; align-items: center; justify-content: flex-end; gap: 8px; flex-wrap: wrap; min-width: 0; }
+.reset { font-size: 0.8rem; color: var(--dim); background: none; border: 1px solid var(--line); border-radius: 999px; padding: 4px 12px; cursor: pointer; }
+.reset:hover { color: var(--text); border-color: var(--g3); }
+.reset.armed { color: #14121c; background: var(--grad); border-color: transparent; font-weight: 600; }
+.pop { position: absolute; left: 0; bottom: calc(100% + 10px); z-index: 6; width: min(18rem, 100%); max-height: 16rem; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; scrollbar-color: var(--line) transparent; background: var(--surface); border: 1px solid var(--line); border-radius: 18px; padding: 6px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7); display: flex; flex-direction: column; gap: 2px; }
+.pop button { display: flex; align-items: center; gap: 12px; text-align: left; background: none; border: 0; color: var(--text); padding: 8px 10px; border-radius: 14px; cursor: pointer; font-size: 0.92rem; }
+.pop .ico { flex: none; width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; border: 1.5px solid transparent; background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; }
+.pop .t { display: flex; flex-direction: column; min-width: 0; }
+.pop .t b { font-weight: 500; }
+.pop .t small { font-size: 0.75rem; color: var(--dim); }
+.pop button:hover, .pop button:focus-visible { background: var(--surface-2); }
+.main > .drop { position: absolute; inset: 8px; z-index: 8; display: grid; place-items: center; text-align: center; pointer-events: none; border-radius: 24px; border: 2px solid transparent; background: linear-gradient(rgba(0, 0, 0, 0.8), rgba(0, 0, 0, 0.8)) padding-box, var(--grad) border-box; font-family: var(--font-display); font-size: 1.4rem; padding: 16px; }
+.main > .drop small { display: block; font-family: var(--font-body); font-size: 0.9rem; color: var(--dim); margin-top: 6px; }
+.main > .toast { position: absolute; left: 50%; transform: translateX(-50%); bottom: 7.5rem; z-index: 9; max-width: calc(100% - 32px); background: var(--surface-2); border: 1px solid var(--line); border-radius: 999px; padding: 8px 16px; font-size: 0.88rem; text-align: center; }
+.icon-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+.fcard { display: flex; align-items: center; gap: 10px; padding: 6px 10px 6px 6px; border: 1px solid var(--line); background: var(--surface); border-radius: 14px; max-width: 16rem; min-width: 0; }
+.fthumb { flex: none; width: 48px; height: 48px; border-radius: 10px; border: 1.5px solid transparent; background: linear-gradient(var(--surface-2), var(--surface-2)) padding-box, var(--grad) border-box; padding: 0; overflow: hidden; cursor: pointer; display: grid; place-items: center; color: var(--text); }
+.fthumb:disabled { cursor: default; }
+.fthumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.fext { font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; -webkit-text-fill-color: transparent; }
+.ftxt { display: flex; flex-direction: column; min-width: 0; }
+.ftxt .fname { font-size: 0.82rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ftxt .fsize { font-size: 0.72rem; color: var(--dim); }
+.fcard .fx { flex: none; background: none; border: 0; color: var(--dim); cursor: pointer; font-size: 1.1rem; line-height: 1; padding: 2px 4px; }
+.fcard .fx:hover { color: var(--text); }
+.modal { position: fixed; inset: 0; z-index: 50; display: grid; place-items: center; padding: 16px; background: rgba(0, 0, 0, 0.82); }
+.m-card { width: min(52rem, 100%); max-height: 100%; display: flex; flex-direction: column; border-radius: 20px; border: 1.5px solid transparent; background: linear-gradient(var(--surface), var(--surface)) padding-box, var(--grad) border-box; overflow: hidden; }
+.m-head { display: flex; align-items: center; gap: 12px; padding: 8px 8px 8px 16px; border-bottom: 1px solid var(--line); }
+.m-head span { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 0.9rem; }
+.m-close { font-size: 1.5rem; line-height: 1; }
+.m-body { padding: 16px; overflow: auto; display: grid; place-items: center; min-height: 0; }
+.m-body img, .m-body video { max-width: 100%; max-height: 70vh; border-radius: 12px; display: block; }
+.m-body audio { width: 100%; }
+.m-body pre { margin: 0; width: 100%; white-space: pre-wrap; overflow-wrap: anywhere; font-size: 0.85rem; line-height: 1.5; font-family: ui-monospace, Menlo, Consolas, monospace; color: var(--text); }
+.m-none { text-align: center; color: var(--dim); display: flex; flex-direction: column; gap: 8px; align-items: center; }
+.m-none .fext { font-size: 1.8rem; }
+.scrim { display: none; }
+
+@media (max-width: 860px) {
+  .shell { grid-template-columns: minmax(0, 1fr); }
+  .menu { display: grid; }
+  .side { position: fixed; z-index: 20; inset: 0 auto 0 0; width: min(18rem, 86vw); transform: translateX(-102%); transition: transform 0.2s ease; padding-top: calc(16px + env(safe-area-inset-top, 0px)); padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+  .nav-open .side { transform: none; }
+  .nav-open .scrim { display: block; position: fixed; inset: 0; z-index: 10; background: rgba(0,0,0,0.6); border: 0; }
+  .h-del { opacity: 1; }
+  .suggest { padding-left: 0; }
+}
+@media (prefers-reduced-motion: reduce) { .scroll { scroll-behavior: auto; } .dots i, .composer.invalid, .caret { animation: none; } .side { transition: none; } }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
+  <linearGradient id="ringg" gradientUnits="userSpaceOnUse" x1="2" y1="0" x2="26" y2="0">
+    <stop offset="0" stop-color="#ee5fa7"/><stop offset="0.3" stop-color="#ffd166"/><stop offset="0.6" stop-color="#7fdcb4"/><stop offset="0.82" stop-color="#38c8d4"/><stop offset="1" stop-color="#a78bfa"/>
+  </linearGradient>
+  <symbol id="pencil-saturn" viewBox="0 0 28 28">
+    <g transform="rotate(-28 14 14)"><path d="M2 14a12 4.3 0 0 1 24 0" fill="none" stroke="url(#ringg)" stroke-width="1.5" stroke-linecap="round"/></g>
+    <g transform="rotate(45 14 14)">
+      <rect x="11.3" y="4.2" width="5.4" height="2.4" rx="0.8" fill="#ee5fa7"/>
+      <rect x="11.3" y="6.6" width="5.4" height="1.4" fill="#cfd5dc"/>
+      <rect x="11.3" y="8" width="5.4" height="9" fill="#ffd166"/>
+      <rect x="14" y="8" width="2.7" height="9" fill="#f0b94a"/>
+      <path d="M11.3 17l2.7 5.2 2.7-5.2z" fill="#f4e6d2"/>
+      <path d="M13 20.3l1 1.9 1-1.9z" fill="#14121c"/>
+    </g>
+    <g transform="rotate(-28 14 14)"><path d="M2 14a12 4.3 0 0 0 24 0" fill="none" stroke="url(#ringg)" stroke-width="1.5" stroke-linecap="round"/></g>
+  </symbol>
+</defs></svg>
+
+<div class="shell" id="shell">
+  <aside class="side" id="side" aria-label="Historial de actividades">
+    <div class="brand"><svg class="logo" viewBox="0 0 28 28" aria-hidden="true"><use href="#pencil-saturn"/></svg>Aula <span>IA</span></div>
+    <button type="button" class="new-btn" id="new">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+      Nueva actividad
+    </button>
+    <h2>Actividades</h2>
+    <div class="history" id="history"></div>
+    <div class="side-note">No se guarda: al cerrar la página se borra todo.</div>
+  </aside>
+  <button type="button" class="scrim" id="scrim" aria-label="Cerrar menú"></button>
+
+  <section class="main">
+    <div class="topbar">
+      <button type="button" class="menu" id="menu" aria-label="Abrir historial">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 7h16M4 12h16M4 17h16"/></svg>
+      </button>
+      <div class="spacer"></div>
+      <div class="who-row">
+        <div class="who" id="who" hidden></div>
+        <button type="button" class="reset" id="reset" hidden>Cambiar docente</button>
+      </div>
+    </div>
+
+    <div class="scroll" id="scroll">
+      <div class="col"><main id="log" aria-live="off"></main></div>
+    </div>
+
+    <div class="col composer-wrap">
+      <div class="attached" id="attached"></div>
+      <div class="composer-glow">
+        <div class="pop" id="attMenu" role="menu" aria-label="Tipo de archivo" hidden>
+          <button type="button" role="menuitem" data-accept="image/*"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="3"/><circle cx="9" cy="10" r="1.6"/><path d="M4 18l5-5 4 4 3-3 4 4"/></svg></i><span class="t"><b>Fotos</b><small>JPG, PNG, HEIC y otras imágenes</small></span></button>
+          <button type="button" role="menuitem" data-accept=".pdf,.doc,.docx,.odt,.rtf,.txt,.md"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 3h7l5 5v13H7z"/><path d="M14 3v5h5M10 13h6M10 17h6"/></svg></i><span class="t"><b>Documentos</b><small>PDF, Word y texto</small></span></button>
+          <button type="button" role="menuitem" data-accept=""><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3l9 5-9 5-9-5z"/><path d="M3 13l9 5 9-5"/></svg></i><span class="t"><b>Cualquier formato</b><small>Elegí cualquier archivo</small></span></button>
+          <button type="button" role="menuitem" data-accept=".xls,.xlsx,.ods,.csv"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="16" rx="2.5"/><path d="M3 10h18M3 15h18M9 4v16"/></svg></i><span class="t"><b>Planillas</b><small>Excel y tablas CSV</small></span></button>
+          <button type="button" role="menuitem" data-accept=".ppt,.pptx,.odp"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="12" rx="2"/><path d="M12 16v4M8 20h8M8 12l3-3 2 2 3-3"/></svg></i><span class="t"><b>Presentaciones</b><small>PowerPoint y similares</small></span></button>
+          <button type="button" role="menuitem" data-accept="audio/*"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 18V6l10-2v12"/><circle cx="6.5" cy="18" r="2.5"/><circle cx="16.5" cy="16" r="2.5"/></svg></i><span class="t"><b>Audio</b><small>Grabaciones y música</small></span></button>
+          <button type="button" role="menuitem" data-accept="video/*"><i class="ico"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="6" width="13" height="12" rx="2.5"/><path d="M16 10l5-3v10l-5-3z"/></svg></i><span class="t"><b>Video</b><small>Clips de clase o tutoriales</small></span></button>
+        </div>
+        <form class="composer" id="form" autocomplete="off">
+        <input type="file" id="file" multiple hidden>
+        <button type="button" class="icon-btn" id="attach" title="Adjuntar archivos" aria-label="Adjuntar archivos">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.4 11.1l-9.2 9.2a6 6 0 01-8.5-8.5l9.2-9.2a4 4 0 015.7 5.7l-9.2 9.2a2 2 0 01-2.8-2.8l8.5-8.5"/></svg>
+        </button>
+        <select id="courseSelect" aria-label="Seleccionar curso" hidden>
+          <option value="">Seleccioná tu curso</option>
+        </select>
+        <textarea id="input" rows="1" placeholder="Escribí tu nombre (obligatorio)" aria-label="Mensaje" aria-required="true"></textarea>
+        <button type="submit" class="send" id="send" aria-label="Enviar">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+        </button>
+      </form></div>
+      <p class="hint" id="hint" aria-live="polite"></p>
+    </div>
+    <div class="drop" id="drop" hidden><div>Soltá los archivos acá para adjuntarlos<small>Fotos, documentos o cualquier formato</small></div></div>
+    <div class="toast" id="toast" role="status" hidden></div>
+  </section>
+</div>
+
+<div class="modal" id="modal" role="dialog" aria-modal="true" aria-label="Vista previa" hidden>
+  <div class="m-card">
+    <div class="m-head"><span id="mName"></span><button type="button" class="icon-btn m-close" id="mClose" aria-label="Cerrar vista previa">×</button></div>
+    <div class="m-body" id="mBody"></div>
+  </div>
+</div>
+
+<script>
+/*
+  Maqueta sin IA. Para conectar un agente propio:
+    window.aulaIA.onSend = function (m) { ... }   // m = { teacher, course, text, files }  (files son objetos File)
+    window.aulaIA.thinking(true | false)          // muestra u oculta los puntos de "escribiendo"
+    window.aulaIA.reply("texto de respuesta")     // agrega la respuesta con efecto de escritura
+*/
+(function () {
+  var $ = function (s) { return document.querySelector(s); };
+  var log = $("#log"), scroller = $("#scroll"), input = $("#input"), form = $("#form");
+  var attachBtn = $("#attach"), fileInput = $("#file"), attachedBox = $("#attached");
+  var who = $("#who"), hint = $("#hint"), historyEl = $("#history"), shell = $("#shell");
+  var courseSelect = $("#courseSelect");
+
+  var state = { step: 0, teacher: "", course: "", turns: [], files: [], id: null, createdAt: 0, nonce: 0 };
+  var items = [];
+  var thinkEl = null;
+  var cursosList = [];
+  var CURSOS_DEFAULT = [
+    "1er Año - M. Curie", "1er Año - R. Favaloro", "1er Año - C. Milstein",
+    "2do Año - C. Grierson", "2do Año - B. Houssay", "2do Año - A. Moreau de Justo",
+    "3er Año - E. Bachofen", "3er Año - F. Leloir", "3er Año - A. Perez Esquivel",
+    "4to Año - I. Lehmann", "4to Año - A. Lovelace", "4to Año - M. Sadosky",
+    "5to Año - J. Backus", "5to Año - C. Berdichevski", "5to Año - E. Mortola"
+  ];
+
+  var REDUCED = !!(window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches);
+  var AVATAR = '<svg class="avatar" viewBox="0 0 28 28" aria-hidden="true"><use href="#pencil-saturn"/></svg>';
+
+  function esc(s) { return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;"); }
+  function inline(s) {
+    return esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|[^*])\*([^*\n]+)\*/g, "$1<em>$2</em>");
+  }
+  function md(text) {
+    var lines = text.split("\n"), out = [], list = null, para = [];
+    function flushPara() { if (para.length) { out.push("<p>" + para.join("<br>") + "</p>"); para = []; } }
+    function flushList() { if (list) { out.push("</" + list + ">"); list = null; } }
+    lines.forEach(function (raw) {
+      var l = raw.trim(), m;
+      if (!l) { flushPara(); flushList(); return; }
+      if ((m = l.match(/^(#{1,3})\s+(.*)$/))) { flushPara(); flushList(); var lv = m[1].length === 1 ? 2 : 3; out.push("<h" + lv + ">" + inline(m[2]) + "</h" + lv + ">"); return; }
+      if ((m = l.match(/^[-*•]\s+(.*)$/))) { flushPara(); if (list !== "ul") { flushList(); out.push("<ul>"); list = "ul"; } out.push("<li>" + inline(m[1]) + "</li>"); return; }
+      if ((m = l.match(/^\d+[.)]\s+(.*)$/))) { flushPara(); if (list !== "ol") { flushList(); out.push("<ol>"); list = "ol"; } out.push("<li>" + inline(m[1]) + "</li>"); return; }
+      flushList(); para.push(inline(l));
+    });
+    flushPara(); flushList();
+    return out.join("");
+  }
+
+  function scrollDown() { scroller.scrollTop = scroller.scrollHeight; }
+  function nearBottom() { return scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight < 140; }
+
+  /* ---------- Efecto de escritura ---------- */
+  function withCaret(html) {
+    var re = /<\/(p|li|h[2-3])>/g, m, last = -1;
+    while ((m = re.exec(html))) last = m.index;
+    var c = '<span class="caret"></span>';
+    return last < 0 ? html + c : html.slice(0, last) + c + html.slice(last);
+  }
+  function makeTyper(bubble, text) {
+    var shown = 0, raf = 0, waiters = [], last = 0, acc = 0;
+    function render(caret) { var h = md(text.slice(0, shown)); bubble.innerHTML = caret ? withCaret(h) : h; }
+    function tick(ts) {
+      raf = 0;
+      var dt = last ? Math.min(ts - last, 100) : 16; last = ts;
+      var near = nearBottom();
+      acc += dt * (75 + Math.min((text.length - shown) / 8, 300)) / 1000;
+      var step = Math.floor(acc); acc -= step;
+      if (step > 0) shown = Math.min(text.length, shown + step);
+      if (shown < text.length) { if (step > 0) { render(true); if (near) scrollDown(); } raf = requestAnimationFrame(tick); return; }
+      render(false); if (near) scrollDown();
+      var w = waiters; waiters = []; w.forEach(function (f) { f(); });
+    }
+    bubble.addEventListener("click", function () { if (shown < text.length) shown = text.length; });
+    return new Promise(function (res) {
+      if (REDUCED) { shown = text.length; render(false); res(); return; }
+      waiters.push(res); raf = requestAnimationFrame(tick);
+    });
+  }
+
+  function chipsRow(files) {
+    var row = document.createElement("div"); row.className = "chips-files";
+    files.forEach(function (f) { row.appendChild(fileCard(f, null)); });
+    return row;
+  }
+
+  function addMsg(role, text, files, type) {
+    var wrap = document.createElement("div"); wrap.className = "msg " + role;
+    var bubble = document.createElement("div"); bubble.className = "bubble";
+    var holder, done = Promise.resolve();
+    if (role === "ai") {
+      wrap.insertAdjacentHTML("afterbegin", AVATAR);
+      holder = document.createElement("div"); holder.className = "body"; holder.appendChild(bubble);
+      if (type) done = makeTyper(bubble, text); else bubble.innerHTML = md(text);
+    } else {
+      bubble.textContent = text;
+      holder = document.createElement("div"); holder.className = "stack";
+      if (files && files.length) holder.appendChild(chipsRow(files));
+      if (text) holder.appendChild(bubble);
+    }
+    wrap.appendChild(holder); log.appendChild(wrap); scrollDown();
+    return { wrap: wrap, bubble: bubble, body: holder, done: done };
+  }
+  function say(text) { return addMsg("ai", text, null, true).done; }
+
+  function addCopy(body, text) {
+    var row = document.createElement("div"); row.className = "actions";
+    var b = document.createElement("button"); b.type = "button"; b.className = "ghost"; b.textContent = "Copiar";
+    b.addEventListener("click", function () {
+      function ok() { b.textContent = "Copiado"; setTimeout(function () { b.textContent = "Copiar"; }, 1800); }
+      function fallback() {
+        var r = document.createRange(); r.selectNodeContents(body.querySelector(".bubble"));
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        b.textContent = "Seleccionado, copiá con Ctrl+C";
+      }
+      try { navigator.clipboard.writeText(text).then(ok, fallback); } catch (e) { fallback(); }
+    });
+    row.appendChild(b); body.appendChild(row);
+  }
+
+  function addHero() {
+    var h = document.createElement("div"); h.className = "hero";
+    var t = document.createElement("h1"), g = document.createElement("span"); g.className = "gtext";
+    g.textContent = state.teacher ? "Hola, " + state.teacher : "Hola, docente";
+    t.appendChild(g);
+    var p = document.createElement("p"); p.textContent = "¿Qué actividad armamos hoy para tu clase?";
+    h.appendChild(t); h.appendChild(p); log.appendChild(h);
+  }
+
+  function addSuggestions() {
+    var ideas = [
+      "Una actividad de 40 minutos para trabajar en grupos",
+      "Un juego para repasar el tema antes de la evaluación",
+      "Una actividad individual con consignas escalonadas",
+      "Una ficha con ejercicios y su clave de corrección"
+    ];
+    var box = document.createElement("div"); box.className = "suggest";
+    ideas.forEach(function (t) {
+      var b = document.createElement("button"); b.type = "button"; b.textContent = t;
+      b.addEventListener("click", function () { input.value = t + ". Tema: "; autosize(); input.focus(); });
+      box.appendChild(b);
+    });
+    log.appendChild(box); scrollDown();
+  }
+
+  /* ---------- Cursos predeterminados ---------- */
+  function poblarCourseSelect(nombres) {
+    if (!courseSelect) return;
+    var actual = courseSelect.value;
+    courseSelect.innerHTML = '<option value="">Seleccioná tu curso</option>';
+    (nombres || []).forEach(function (nombre) {
+      var opt = document.createElement("option");
+      opt.value = nombre;
+      opt.textContent = nombre;
+      courseSelect.appendChild(opt);
+    });
+    if (actual) courseSelect.value = actual;
+  }
+
+  function cargarCursos() {
+    if (cursosList.length) return Promise.resolve(cursosList);
+    return fetch("/api/cursos").then(function (r) { return r.json(); }).then(function (data) {
+      var lista = (data && data.cursos) ? data.cursos : [];
+      cursosList = lista.length ? lista.map(function (c) { return c.nombre || c; }) : CURSOS_DEFAULT.slice();
+      poblarCourseSelect(cursosList);
+      return cursosList;
+    }).catch(function () {
+      cursosList = CURSOS_DEFAULT.slice();
+      poblarCourseSelect(cursosList);
+      return cursosList;
+    });
+  }
+
+  function setStepUI(step) {
+    if (step === 1) {
+      if (courseSelect) { courseSelect.hidden = false; courseSelect.disabled = false; }
+      if (input) { input.hidden = true; input.disabled = true; }
+      cargarCursos().then(function () { if (courseSelect && state.step === 1) courseSelect.focus(); });
+    } else {
+      if (courseSelect) { courseSelect.hidden = true; courseSelect.value = ""; }
+      if (input) { input.hidden = false; input.disabled = false; }
+    }
+  }
+
+  /* ---------- Ayudas y validación ---------- */
+  var HINT_NAME = "Pregunta obligatoria: escribí tu nombre para continuar. El clip se activa después.";
+  var HINT_COURSE = "Pregunta obligatoria: seleccioná el curso para continuar. El clip se activa después.";
+  var HINT_CHAT = "Adjuntá con el clip o arrastrá archivos al chat. Enter para enviar, Shift + Enter para una línea nueva.";
+  var hintTimer = 0;
+  function baseHint() { return state.step === 0 ? HINT_NAME : state.step === 1 ? HINT_COURSE : HINT_CHAT; }
+  function resetHint() { clearTimeout(hintTimer); hint.classList.remove("err"); form.classList.remove("invalid"); hint.textContent = baseHint(); }
+  function showRequired(msg) {
+    clearTimeout(hintTimer);
+    hint.textContent = msg; hint.classList.add("err");
+    form.classList.remove("invalid"); void form.offsetWidth; form.classList.add("invalid");
+    if (state.step === 1 && courseSelect && !courseSelect.hidden) courseSelect.focus();
+    else input.focus();
+    hintTimer = setTimeout(resetHint, 4000);
+  }
+  function updateAttach() {
+    var off = state.step < 2;
+    attachBtn.disabled = off;
+    attachBtn.title = off ? "Completá el nombre y el curso para adjuntar archivos" : "Adjuntar archivos";
+    if (off) closeMenu();
+  }
+  function validateRequired(text) {
+    if (state.step === 0) {
+      if (!text) return "Tu nombre es obligatorio. Escribilo para continuar.";
+      if (!/^[A-Za-zÀ-ÿ\u00f1\u00d1\s'.-]+$/.test(text)) return "El nombre no puede contener números ni caracteres especiales.";
+      if (!/[A-Za-zÀ-ÿ\u00f1\u00d1]{2,}/.test(text)) return "Escribí tu nombre con al menos 2 letras.";
+    } else if (state.step === 1) {
+      var curso = courseSelect ? courseSelect.value : text;
+      if (!curso) return "El curso es obligatorio. Seleccionalo para continuar.";
+    }
+    return "";
+  }
+
+  /* ---------- Archivos adjuntos (cualquier formato) ---------- */
+  function fmtSize(n) {
+    if (n < 1024) return n + " B";
+    if (n < 1048576) return Math.round(n / 1024) + " KB";
+    return (n / 1048576).toFixed(1) + " MB";
+  }
+  function extOf(name) { var m = /\.([A-Za-z0-9]{1,5})$/.exec(name || ""); return m ? m[1].toUpperCase() : "ARCH"; }
+  function kindOf(file) {
+    var t = file.type || "";
+    if (t.indexOf("image/") === 0) return "image";
+    if (t.indexOf("video/") === 0) return "video";
+    if (t.indexOf("audio/") === 0) return "audio";
+    return "other";
+  }
+  function makeFileObj(file) {
+    var o = { name: file.name, file: file, kind: kindOf(file) };
+    if (o.kind !== "other") { try { o.url = URL.createObjectURL(file); } catch (e) {} }
+    return o;
+  }
+  function fileCard(f, onRemove) {
+    var card = document.createElement("div"); card.className = "fcard";
+    var thumb = document.createElement("button"); thumb.type = "button"; thumb.className = "fthumb";
+    thumb.setAttribute("aria-label", "Vista previa de " + f.name);
+    if (f.kind === "image" && f.url) { var img = document.createElement("img"); img.src = f.url; img.alt = ""; thumb.appendChild(img); }
+    else { var b = document.createElement("span"); b.className = "fext"; b.textContent = extOf(f.name); thumb.appendChild(b); }
+    if (f.file) thumb.addEventListener("click", function () { openPreview(f, thumb); }); else thumb.disabled = true;
+    var txt = document.createElement("span"); txt.className = "ftxt";
+    var nm = document.createElement("span"); nm.className = "fname"; nm.textContent = f.name;
+    txt.appendChild(nm);
+    if (f.file) { var sz = document.createElement("span"); sz.className = "fsize"; sz.textContent = fmtSize(f.file.size); txt.appendChild(sz); }
+    card.appendChild(thumb); card.appendChild(txt);
+    if (onRemove) {
+      var x = document.createElement("button"); x.type = "button"; x.className = "fx";
+      x.setAttribute("aria-label", "Quitar " + f.name); x.textContent = "×";
+      x.addEventListener("click", onRemove); card.appendChild(x);
+    }
+    return card;
+  }
+  function renderAttached() {
+    attachedBox.innerHTML = "";
+    state.files.forEach(function (f, i) {
+      attachedBox.appendChild(fileCard(f, function () {
+        if (f.url) { try { URL.revokeObjectURL(f.url); } catch (e) {} }
+        state.files.splice(i, 1); renderAttached();
+      }));
+    });
+  }
+
+  /* Vista previa de archivos */
+  var modal = $("#modal"), mBody = $("#mBody"), mName = $("#mName"), mClose = $("#mClose"), lastFocus = null;
+  var TEXT_EXTS = ["txt", "md", "csv", "tsv", "json", "html", "htm", "xml", "log", "yaml", "yml", "js", "css", "py"];
+  function closePreview() { modal.hidden = true; mBody.innerHTML = ""; if (lastFocus && lastFocus.focus) lastFocus.focus(); }
+  function openPreview(f, opener) {
+    if (!f.file) return;
+    lastFocus = opener; mBody.innerHTML = "";
+    mName.textContent = f.name + " · " + fmtSize(f.file.size);
+    var ext = extOf(f.name).toLowerCase(), el;
+    if (f.kind === "image" && f.url) { el = document.createElement("img"); el.src = f.url; el.alt = f.name; mBody.appendChild(el); }
+    else if (f.kind === "video" && f.url) { el = document.createElement("video"); el.src = f.url; el.controls = true; el.preload = "metadata"; mBody.appendChild(el); }
+    else if (f.kind === "audio" && f.url) { el = document.createElement("audio"); el.src = f.url; el.controls = true; mBody.appendChild(el); }
+    else if (TEXT_EXTS.indexOf(ext) >= 0 || (f.file.type || "").indexOf("text/") === 0) {
+      el = document.createElement("pre"); el.textContent = "Cargando…"; mBody.appendChild(el);
+      f.file.slice(0, 6000).text().then(function (t) { el.textContent = t + (f.file.size > 6000 ? "\n…" : ""); }, function () { el.textContent = "No se pudo mostrar el contenido."; });
+    } else {
+      el = document.createElement("div"); el.className = "m-none";
+      var b = document.createElement("span"); b.className = "fext"; b.textContent = extOf(f.name);
+      var p = document.createElement("p"); p.textContent = "No hay vista previa para este formato. El archivo se envía igual.";
+      el.appendChild(b); el.appendChild(p); mBody.appendChild(el);
+    }
+    modal.hidden = false; mClose.focus();
+  }
+  mClose.addEventListener("click", closePreview);
+  modal.addEventListener("click", function (e) { if (e.target === modal) closePreview(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !modal.hidden) closePreview(); });
+  function addFiles(list) {
+    Array.prototype.slice.call(list).forEach(function (f) {
+      if (f.size === 0 && !f.type && f.name.indexOf(".") < 0) return;
+      state.files.push(makeFileObj(f));
+    });
+    renderAttached();
+  }
+  fileInput.addEventListener("change", function () { addFiles(fileInput.files); fileInput.value = ""; });
+
+  /* Menú del clip */
+  var attMenu = $("#attMenu");
+  attachBtn.setAttribute("aria-haspopup", "menu");
+  attachBtn.setAttribute("aria-expanded", "false");
+  function closeMenu() { attMenu.hidden = true; attachBtn.setAttribute("aria-expanded", "false"); }
+  attachBtn.addEventListener("click", function (e) {
+    e.stopPropagation();
+    var opening = attMenu.hidden;
+    attMenu.hidden = !opening;
+    attachBtn.setAttribute("aria-expanded", String(opening));
+    if (opening) { var first = attMenu.querySelector("button"); if (first) first.focus(); }
+  });
+  attMenu.addEventListener("click", function (e) {
+    var b = e.target.closest("button[data-accept]");
+    if (!b) return;
+    fileInput.accept = b.getAttribute("data-accept") || "";
+    closeMenu();
+    fileInput.click();
+  });
+  document.addEventListener("click", function (e) { if (!attMenu.hidden && !attMenu.contains(e.target)) closeMenu(); });
+  document.addEventListener("keydown", function (e) { if (e.key === "Escape" && !attMenu.hidden) { closeMenu(); attachBtn.focus(); } });
+
+  /* Arrastrar y soltar archivos sobre el chat */
+  var mainEl = document.querySelector(".main"), dropEl = $("#drop"), dragDepth = 0;
+  function hasFiles(e) {
+    var t = e.dataTransfer && e.dataTransfer.types;
+    if (!t) return false;
+    for (var i = 0; i < t.length; i++) if (t[i] === "Files") return true;
+    return false;
+  }
+  mainEl.addEventListener("dragenter", function (e) { if (!hasFiles(e)) return; e.preventDefault(); if (state.step < 2) return; dragDepth++; dropEl.hidden = false; });
+  mainEl.addEventListener("dragover", function (e) { if (!hasFiles(e)) return; e.preventDefault(); e.dataTransfer.dropEffect = state.step < 2 ? "none" : "copy"; });
+  mainEl.addEventListener("dragleave", function (e) { if (!hasFiles(e)) return; dragDepth = Math.max(0, dragDepth - 1); if (!dragDepth) dropEl.hidden = true; });
+  mainEl.addEventListener("drop", function (e) {
+    if (!hasFiles(e)) return;
+    e.preventDefault(); dragDepth = 0; dropEl.hidden = true;
+    if (state.step < 2) { toast("Completá el nombre y el curso antes de adjuntar archivos."); return; }
+    addFiles(e.dataTransfer.files);
+  });
+  window.addEventListener("dragover", function (e) { if (hasFiles(e)) e.preventDefault(); });
+  window.addEventListener("drop", function (e) { if (hasFiles(e)) { e.preventDefault(); dragDepth = 0; dropEl.hidden = true; } });
+
+  /* Aviso breve */
+  var toastEl = $("#toast"), toastTimer = 0;
+  function toast(msg) {
+    toastEl.textContent = msg; toastEl.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toastEl.hidden = true; }, 3500);
+  }
+
+  /* Cambiar docente: borra nombre, curso y actividades para que otra persona empiece de cero */
+  var resetBtn = $("#reset"), resetTimer = 0, armed = false;
+  function disarm() { armed = false; clearTimeout(resetTimer); resetBtn.textContent = "Cambiar docente"; resetBtn.classList.remove("armed"); }
+  resetBtn.addEventListener("click", function () {
+    if (!armed) {
+      armed = true; resetBtn.textContent = "Confirmar: borrar mis datos"; resetBtn.classList.add("armed");
+      resetTimer = setTimeout(disarm, 4000); return;
+    }
+    disarm();
+    items = []; state.teacher = ""; state.course = "";
+    lsRemove("aula_items"); lsRemove("aula_teacher");
+    newChat();
+    toast("Datos borrados. Otro docente puede ingresar los suyos.");
+  });
+
+  function autosize() { input.style.height = "auto"; input.style.height = input.scrollHeight + "px"; }
+  input.addEventListener("input", function () { autosize(); if (hint.classList.contains("err")) resetHint(); });
+  if (courseSelect) courseSelect.addEventListener("change", function () { if (hint.classList.contains("err")) resetHint(); });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  /* ---------- Historial (solo en este navegador) ---------- */
+  function lsRemove(k) { try { localStorage.removeItem(k); } catch (e) {} }
+  function fmtDate(ts) { try { return new Date(ts).toLocaleDateString("es-AR", { day: "numeric", month: "short" }); } catch (e) { return ""; } }
+
+  function renderHistory() {
+    historyEl.innerHTML = "";
+    var list = items.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; });
+    if (!list.length) {
+      var e = document.createElement("div"); e.className = "h-empty";
+      e.textContent = "Todavía no hay actividades. Cuando empieces a trabajar, van a aparecer acá.";
+      historyEl.appendChild(e);
+    }
+    list.forEach(function (c) {
+      var row = document.createElement("div"); row.className = "h-item" + (c.id === state.id ? " active" : "");
+      var open = document.createElement("button"); open.type = "button"; open.className = "h-open";
+      var t = document.createElement("span"); t.className = "h-title"; t.textContent = c.title || "Actividad";
+      var s = document.createElement("span"); s.className = "h-sub"; s.textContent = [c.course, fmtDate(c.updatedAt)].filter(Boolean).join(" · ");
+      open.appendChild(t); open.appendChild(s);
+      open.addEventListener("click", function () { openChat(c.id); });
+      var del = document.createElement("button"); del.type = "button"; del.className = "h-del";
+      del.setAttribute("aria-label", "Eliminar " + (c.title || "actividad")); del.textContent = "×";
+      del.addEventListener("click", function () { removeChat(c.id); });
+      row.appendChild(open); row.appendChild(del); historyEl.appendChild(row);
+    });
+  }
+
+  function persist() {
+    if (!state.turns.length) return;
+    var now = Date.now();
+    if (!state.id) { state.id = "a" + now.toString(36) + Math.random().toString(36).slice(2, 6); state.createdAt = now; }
+    var first = state.turns[0];
+    var title = (first.text || (first.files && first.files[0]) || "Actividad").replace(/\s+/g, " ").slice(0, 60);
+    var chat = { id: state.id, title: title, teacher: state.teacher, course: state.course, createdAt: state.createdAt, updatedAt: now, turns: state.turns.slice() };
+    var i = items.findIndex(function (c) { return c.id === chat.id; });
+    if (i >= 0) items[i] = chat; else items.push(chat);
+    renderHistory();
+  }
+
+  function removeChat(id) {
+    items = items.filter(function (c) { return c.id !== id; });
+    var was = state.id === id;
+    renderHistory();
+    if (was) newChat();
+  }
+
+  function closeNav() { shell.classList.remove("nav-open"); }
+  function setWho() {
+    var t = [state.teacher, state.course].filter(Boolean).join(" · ");
+    who.textContent = t; who.hidden = !t; resetBtn.hidden = !t;
+  }
+
+  function openChat(id) {
+    var c = items.find(function (x) { return x.id === id; });
+    if (!c) return;
+    state.nonce++; thinkEl = null;
+    state.id = c.id; state.createdAt = c.createdAt; state.teacher = c.teacher || state.teacher; state.course = c.course || "";
+    state.turns = c.turns.slice(); state.files = []; renderAttached();
+    log.innerHTML = "";
+    state.turns.forEach(function (t) {
+      if (t.role === "user") addMsg("user", t.text, (t.files || []).map(function (n) { return { name: n }; }));
+      else { var m = addMsg("ai", t.text, null, false); addCopy(m.body, t.text); }
+    });
+    state.step = 2; setStepUI(2); setWho(); updateAttach();
+    input.placeholder = "Escribí qué actividad querés hacer";
+    resetHint(); renderHistory(); closeNav(); scroller.scrollTop = 0; input.focus();
+  }
+
+  function newChat(silent) {
+    state.nonce++; thinkEl = null;
+    state.id = null; state.turns = []; state.files = []; state.course = "";
+    renderAttached(); log.innerHTML = ""; closeNav();
+    addHero();
+    if (state.teacher) {
+      state.step = 1; setStepUI(1); setWho();
+      say("Hola de nuevo, **" + state.teacher + "**. ¿Para qué curso es la clase? Seleccioná una de las opciones. Es un dato obligatorio.");
+    } else {
+      state.step = 0; setStepUI(0); who.hidden = true; resetBtn.hidden = true;
+      say("Hola, soy tu asistente para armar actividades de clase. Primero necesito conocerte. ¿Cómo te llamás? Es un dato obligatorio.");
+      input.placeholder = "Escribí tu nombre (obligatorio)";
+    }
+    updateAttach(); resetHint(); renderHistory(); scroller.scrollTop = 0;
+    if (!silent) { if (state.step === 1 && courseSelect) courseSelect.focus(); else input.focus(); }
+  }
+
+  /* ---------- Envío ---------- */
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
+    var text = input.value.trim();
+    if (state.step < 2) {
+      var err = validateRequired(text);
+      if (err) { showRequired(err); return; }
+    }
+    var files = state.files.slice();
+    if (state.step === 2 && !text && !files.length) return;
+    input.value = ""; autosize();
+    var n = state.nonce;
+
+    if (state.step === 0) {
+      state.teacher = text;
+      addMsg("user", text, null); setWho();
+      say("Encantado, **" + text + "**. ¿Para qué curso es la clase? Seleccioná una de las opciones. Es un dato obligatorio.");
+      state.step = 1; setStepUI(1); resetHint();
+    } else if (state.step === 1) {
+      var cursoElegido = courseSelect ? courseSelect.value : text;
+      state.course = cursoElegido;
+      addMsg("user", cursoElegido, null); setWho();
+      say("Listo, ya pueden empezar a trabajar. ¿Qué actividad querés hacer? Contame el tema y cuánto dura la clase, y adjuntá el material que quieras usar.").then(function () {
+        if (n === state.nonce && state.step === 2 && !state.turns.length) addSuggestions();
+      });
+      state.step = 2; setStepUI(2); updateAttach(); input.placeholder = "Escribí qué actividad querés hacer";
+      resetHint(); input.focus();
+    } else {
+      addMsg("user", text, files);
+      state.turns.push({ role: "user", text: text, files: files.map(function (f) { return f.name; }) });
+      state.files = []; renderAttached(); persist();
+      if (window.aulaIA && typeof window.aulaIA.onSend === "function") {
+        window.aulaIA.onSend({ teacher: state.teacher, course: state.course, text: text, files: files.map(function (f) { return f.file; }) });
+      }
+    }
+  });
+
+  /* ---------- Punto de conexión para el agente ---------- */
+  window.aulaIA = {
+    onSend: null,
+    thinking: function (on) {
+      if (on && !thinkEl) { thinkEl = addMsg("ai", "", null, false); thinkEl.bubble.innerHTML = '<span class="dots"><i></i><i></i><i></i></span>'; }
+      if (!on && thinkEl) { thinkEl.wrap.remove(); thinkEl = null; }
+    },
+    reply: function (text) {
+      window.aulaIA.thinking(false);
+      var m = addMsg("ai", String(text), null, true);
+      state.turns.push({ role: "assistant", text: String(text), files: [] });
+      persist();
+      return m.done.then(function () { addCopy(m.body, String(text)); });
+    }
+  };
+
+  $("#new").addEventListener("click", function () { newChat(); });
+  $("#menu").addEventListener("click", function () { shell.classList.add("nav-open"); });
+  $("#scrim").addEventListener("click", closeNav);
+
+  lsRemove("aula_items"); lsRemove("aula_teacher");
+  poblarCourseSelect(CURSOS_DEFAULT);
+  cargarCursos();
+  newChat(true);
+  if (state.step !== 1) input.focus();
+})();
+</script>
+
+</body></html>

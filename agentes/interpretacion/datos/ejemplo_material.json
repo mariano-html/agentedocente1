@@ -1,0 +1,21 @@
+{
+  "material_id": "MAT-01",
+  "partes": [
+    {
+      "id": "F01",
+      "texto": "Introduccion: un prompt es la instruccion que le damos a un modelo de IA. Un prompt claro produce mejores respuestas que uno vago."
+    },
+    {
+      "id": "F02",
+      "texto": "Metodo C.O.R.F.: Contexto (que informacion tiene el modelo), Objetivo (que queremos lograr), Restriccion (limites: tono, extension, publico) y Formato (como queremos la salida: lista, tabla, correo)."
+    },
+    {
+      "id": "F03",
+      "texto": "Ejemplo de prompt mejorado: 'Actua como profesor de historia. Explica la Revolucion de Mayo (contexto) para un estudiante de 15 anos (objetivo y restriccion) en cinco vinetas (formato).'"
+    },
+    {
+      "id": "F04",
+      "texto": "Errores comunes al escribir prompts: pedir varias cosas a la vez, no definir el publico, no indicar el formato de salida y dejar ambiguedades."
+    }
+  ]
+}
